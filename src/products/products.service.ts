@@ -1,13 +1,9 @@
-import {
-  Injectable,
-  OnModuleInit,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger, HttpStatus } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { PrismaClient } from '@prisma/client';
 import { PaginationDto } from '../common/dto/pagination.dto';
+import { RpcException } from '@nestjs/microservices';
 
 @Injectable()
 export class ProductsService extends PrismaClient implements OnModuleInit {
@@ -55,7 +51,10 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
     });
 
     if (!product) {
-      throw new NotFoundException(`Not Found products ${id}`);
+      throw new RpcException({
+        message: `Not Found products ${id}`,
+        status: HttpStatus.BAD_REQUEST,
+      });
     }
 
     return product;
@@ -77,6 +76,29 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
       where: { id },
       data: { available: false },
     });
+
+    return product;
+  }
+
+  async validateProducts(ids: number[]) {
+    // TODO:El set permite que los Ids no esten duplicados, crea una nueva lista.
+    ids = Array.from(new Set(ids));
+
+    // TODO: Esta estructura de where permite encontrar todos los ids en la BD, por lo que si uno de ellos no se encuentra no lo devuelve.
+    const product = await this.eProduct.findMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    });
+
+    if (product.length !== ids.length) {
+      throw new RpcException({
+        status: HttpStatus.NOT_FOUND,
+        message: 'Some products were not found',
+      });
+    }
 
     return product;
   }

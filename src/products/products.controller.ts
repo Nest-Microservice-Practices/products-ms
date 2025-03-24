@@ -1,4 +1,4 @@
-import { Controller, Body, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, ParseIntPipe } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -29,13 +29,19 @@ export class ProductsController {
 
   // @Patch(':id')
   @MessagePattern({ cmd: 'update_product' })
-  update(@Body() updateProductDto: UpdateProductDto) {
+  update(@Payload() updateProductDto: UpdateProductDto) {
     return this.productsService.update(updateProductDto.id, updateProductDto);
   }
 
   // @Delete(':id')
   @MessagePattern({ cmd: 'delete_product' })
-  remove(@Param('id', ParseIntPipe) id: number) {
+  remove(@Payload('id', ParseIntPipe) id: number) {
     return this.productsService.remove(id);
+  }
+
+  @MessagePattern({ cmd: 'validate_products' })
+  validateProducts(@Payload() ids: number[]) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return this.productsService.validateProducts(ids);
   }
 }
